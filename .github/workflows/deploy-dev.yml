@@ -13,11 +13,21 @@ jobs:
       - name: 🔄 Checkout do código
         uses: actions/checkout@v4
 
+      - name: Validar título do PR (DEV-xxx)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const pattern = /^\[[a-zA-Z]{1,7}-\d{1,7}\] .+$/;
+            if (!pattern.test(title)) {
+              core.setFailed(`❌ Título inválido: "${title}". Deve seguir o padrão: [PREFIXO-123] Descrição.`);
+            }
+
       - name: 🧪 Validar título do PR
         uses: amannn/action-pull-request-title@v4
         with:
           title: ${{ github.event.pull_request.title }}
-          regex: '^\[[a-zA-Z]{1,7}\-\d{1,7}\] .+$'
+          regex: ''
 
       - name: 🔍 Verificar arquivos .sql modificados
         id: sqlval
