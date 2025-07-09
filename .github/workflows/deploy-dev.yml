@@ -71,12 +71,17 @@ jobs:
               echo "Atenção: DROP encontrado em $file"
             fi
 
-            # Verifica que é legível como Windows-1252
+            # Detectado como UTF-8
+            if iconv -f utf-8 -t utf-8 "$file" >/dev/null 2>&1; then
+              echo "$file parece estar em UTF-8, esperado: Windows-1252 (ANSI)"
+              has_error=1
+            fi
+            
+            # Inválido em Windows-1252
             if ! iconv -f windows-1252 -t utf-8 "$file" >/dev/null 2>&1; then
               echo "$file contém caracteres inválidos para Windows-1252"
               has_error=1
             fi
-
           done
-
+          
           exit $has_error
