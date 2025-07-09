@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 Checkout do código
-        uses: actions/checkout@v4
-
       - name: Validar título do PR
         uses: actions/github-script@v6
         with:
@@ -20,25 +17,30 @@ jobs:
             const title = context.payload.pull_request.title;
             const pattern = /^\[[a-zA-Z]{1,7}-\d{1,7}\] .+$/;
             if (!pattern.test(title)) {
-              core.setFailed(`❌ Título inválido: "${title}". Deve seguir o padrão: [PREFIXO-123] Descrição.`);
+              core.setFailed(`Título inválido: "${title}". Deve seguir o padrão: [PREFIXO-123] Descrição.`);
             }
 
-      - name: 🔍 Verificar arquivos .sql modificados
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verificar arquivos .sql modificados
         id: sqlval
         run: |
-          echo "🚨 Validando arquivos SQL..."
+          echo "Validando arquivos SQL..."
 
           modified_sql=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.head_ref }} | grep '\.sql$' || true)
 
           if [ -z "$modified_sql" ]; then
-            echo "✅ Nenhum script SQL alterado."
+            echo "Nenhum script SQL alterado."
             exit 0
           fi
 
           has_error=0
 
           for file in $modified_sql; do
-            echo "🔎 Validando $file"
+            echo "Validando $file"
             
             # Normaliza para letras minúsculas (evita false negative)
             lower_content=$(tr '[:upper:]' '[:lower:]' < "$file")
@@ -49,7 +51,7 @@ jobs:
             for tipo in "${tipos[@]}"; do
               if echo "$lower_content" | grep -q "create[[:space:]]\\+$tipo"; then
                 if ! echo "$lower_content" | grep -q "create[[:space:]]\\+or[[:space:]]\\+replace[[:space:]]\\+$tipo"; then
-                  echo "❌ $file contém CREATE $tipo mas está sem OR REPLACE"
+                  echo "$file contém CREATE $tipo mas está sem OR REPLACE"
                   has_error=1
                 fi
               fi
@@ -57,18 +59,18 @@ jobs:
 
             # DELETE sem WHERE
             if echo "$lower_content" | grep -qE 'delete\s+from\s+\w+\s*;?' && ! echo "$lower_content" | grep -q 'where'; then
-              echo "❌ $file contém DELETE sem WHERE"
+              echo "$file contém DELETE sem WHERE"
               has_error=1
             fi
 
             # DROP alerta (não falha)
             if echo "$lower_content" | grep -q 'drop '; then
-              echo "⚠️ Atenção: DROP encontrado em $file"
+              echo "Atenção: DROP encontrado em $file"
             fi
 
             # Encoding UTF-8
             if ! file -bi "$file" | grep -q 'utf-8'; then
-              echo "❌ $file não está em UTF-8"
+              echo "$file não está em UTF-8"
               has_error=1
             fi
           done
