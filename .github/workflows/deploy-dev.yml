@@ -13,7 +13,7 @@ jobs:
       - name: 🔄 Checkout do código
         uses: actions/checkout@v4
 
-      - name: Validar título do PR (DEV-xxx)
+      - name: Validar título do PR
         uses: actions/github-script@v6
         with:
           script: |
