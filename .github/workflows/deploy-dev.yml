@@ -23,12 +23,6 @@ jobs:
               core.setFailed(`❌ Título inválido: "${title}". Deve seguir o padrão: [PREFIXO-123] Descrição.`);
             }
 
-      - name: 🧪 Validar título do PR
-        uses: amannn/action-pull-request-title@v4
-        with:
-          title: ${{ github.event.pull_request.title }}
-          regex: ''
-
       - name: 🔍 Verificar arquivos .sql modificados
         id: sqlval
         run: |
