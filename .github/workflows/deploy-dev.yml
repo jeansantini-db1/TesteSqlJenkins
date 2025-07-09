@@ -1,4 +1,4 @@
-name: Validação scripts SQL e Título do PR
+name: Validação SQL e Título do PR
 
 on:
   pull_request:
