@@ -71,11 +71,22 @@ jobs:
               echo "Atenção: DROP encontrado em $file"
             fi
 
-            # Encoding UTF-8
-            if ! file -bi "$file" | grep -q 'utf-8'; then
-              echo "$file não está em UTF-8"
+            # Encoding
+            charset=$(file -bi "$file")
+            echo "📄 Charset detectado: $charset"
+
+            # Falha se estiver em UTF-8
+            if echo "$charset" | grep -qi 'utf-8'; then
+              echo "❌ $file está em UTF-8, esperado: Windows-1252 (ANSI)"
               has_error=1
             fi
+
+            # Verifica que é legível como Windows-1252
+            if ! iconv -f windows-1252 -t utf-8 "$file" >/dev/null 2>&1; then
+              echo "❌ $file contém caracteres inválidos para Windows-1252"
+              has_error=1
+            fi
+
           done
 
           exit $has_error
