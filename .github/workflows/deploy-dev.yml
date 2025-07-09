@@ -10,7 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validar título do PR
+      - name: 🔄 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Validar título do PR (DEV-xxx)
         uses: actions/github-script@v6
         with:
           script: |
