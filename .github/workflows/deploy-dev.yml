@@ -1,9 +1,9 @@
-name: Validação SQL e Título do PR
+name: Validação scripts SQL e Título do PR
 
 on:
   pull_request:
-    branches: [ dev ]
-    types: [opened, edited, synchronize, reopened]
+    branches: [ "dev" ]
+    types: [ "opened", "edited", "synchronize", "reopened" ]
 
 jobs:
   validar-pr:
