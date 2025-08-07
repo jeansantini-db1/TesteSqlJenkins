@@ -72,8 +72,8 @@ jobs:
             fi
 
             # Detectado como UTF-8
-            if iconv -f utf-8 -t utf-8 "$file" >/dev/null 2>&1; then
-              echo "$file parece estar em UTF-8, esperado: Windows-1252 (ANSI)"
+            if file -bi "$file" | grep -qi 'utf-8'; then
+              echo "$file está em UTF-8, esperado: Windows-1252 (ANSI)"
               has_error=1
             fi
             
