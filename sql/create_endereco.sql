@@ -1,7 +1,6 @@
 DECLARE
   v_table_exists NUMBER;
 BEGIN
-
   SELECT COUNT(*) INTO v_table_exists
   FROM user_tables
   WHERE table_name = 'ENDERECO';
