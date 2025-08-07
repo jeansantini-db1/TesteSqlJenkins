@@ -1,9 +1,5 @@
 pipeline {
-  agent {
-    dockerfile {
-      filename 'jenkins/Dockerfile'
-    }
-  }
+  agent any
 
   environment {
     GITHUB_REPO = 'jeansantini-db1/TesteSqlJenkins'
@@ -18,11 +14,21 @@ pipeline {
           withCredentials([usernamePassword(credentialsId: 'oracle-cred', usernameVariable: 'ORACLE_USER', passwordVariable: 'ORACLE_PASS')]) {
             sh '''
               echo "set define off;" > exec.sql
-              for file in dev/*.sql; do
+
+              # Detecta arquivos .sql alterados no último commit na pasta dev
+              changed_files=$(git diff --name-only origin/dev...HEAD -- 'dev/*.sql')
+
+              if [ -z "$changed_files" ]; then
+                echo "Nenhum arquivo SQL alterado no último commit. Encerrando pipeline."
+                exit 0
+              fi
+
+              for file in $changed_files; do
                 echo "-- Executando $file" >> exec.sql
                 cat "$file" >> exec.sql
-                echo -e "\n\n" >> exec.sql
+                echo -e "\\n\\n" >> exec.sql
               done
+
               sqlplus -S $ORACLE_USER/$ORACLE_PASS@$ORACLE_CONN @exec.sql
             '''
           }
