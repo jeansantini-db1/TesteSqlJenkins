@@ -16,7 +16,7 @@ pipeline {
               echo "set define off;" > exec.sql
 
               # Detecta arquivos .sql alterados no último commit na pasta dev
-              changed_files=$(git diff --name-only origin/dev...HEAD -- 'dev/*.sql')
+              changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.sql')
 
               if [ -z "$changed_files" ]; then
                 echo "Nenhum arquivo SQL alterado no último commit. Encerrando pipeline."
