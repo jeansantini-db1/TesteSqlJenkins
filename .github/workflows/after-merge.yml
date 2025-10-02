@@ -1,50 +1,34 @@
-name: after-merge
+name: After Merge
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [ dev ]
 
 jobs:
-  log-sql-scripts:
-    if: github.event.pull_request.merged == true
+  process-sql:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repositório
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # garante histórico para diff
+          token: ${{ secrets.BOT_PAT }}
 
-      - name: Configurar usuário Git
+      - name: Extrair infos do commit/PR
         run: |
-          git config user.name "actions-bot"
-          git config user.email "actions@github.com"
+          echo "DATE=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
+          echo "AUTHOR=${{ github.actor }}" >> $GITHUB_ENV
+          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
-      - name: Registrar scripts no log de execução
+      - name: Gerar log de instruções
         run: |
-          mkdir -p exec-log
-          LOG_FILE="exec-log/$(date +'%Y-%m-%d').txt"
+          mkdir -p logs
+          echo "${DATE} | BRANCH=${BRANCH} | AUTHOR=${AUTHOR} | FILES:" > logs/${DATE}.txt
+          git diff-tree --no-commit-id --name-only -r ${{ github.sha }} >> logs/${DATE}.txt
 
-          # Extrair card do título do PR (exemplo: [ABC-123] Criar tabela)
-          CARD=$(echo "${{ github.event.pull_request.title }}" | sed -n 's/.*\[\(.*-[0-9]*\)\].*/\1/p')
-          AUTHOR=${{ github.event.pull_request.user.login }}
-
-          # Encontrar arquivos .sql alterados no merge
-          MERGE_COMMIT=$(git rev-parse HEAD)
-          PARENT_COMMIT=$(git rev-parse HEAD^)
-
-          FILES=$(git diff --name-only $PARENT_COMMIT $MERGE_COMMIT -- '*.sql')
-
-          if [ -z "$FILES" ]; then
-            echo "Nenhum arquivo .sql encontrado neste merge."
-            exit 0
-          fi
-
-          for file in $FILES; do
-            echo "$(date +'%Y-%m-%dT%H:%M:%S') | $CARD | $file | autor=$AUTHOR | status=PENDENTE" >> $LOG_FILE
-          done
-
-          git add $LOG_FILE
-          git commit -m "Registrar scripts pendentes em $LOG_FILE"
+      - name: Commitar log
+        run: |
+          git config user.name "Org Bot"
+          git config user.email "bot@org.com"
+          git add logs/
+          git commit -m "Registro pós-merge $DATE" || echo "Nada para commit"
           git push
