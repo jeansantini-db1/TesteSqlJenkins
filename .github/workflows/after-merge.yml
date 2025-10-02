@@ -1,34 +1,60 @@
 name: After Merge
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [ dev ]
 
 jobs:
-  process-sql:
+  prepare-sql:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repositório
+      - name: Checkout código
         uses: actions/checkout@v4
+
+      - name: Extrair card do título do PR
+        id: extract_card
+        run: |
+          title="${{ github.event.pull_request.title }}"
+          if [[ "$title" =~ \[([A-Z]+-[0-9]+)\] ]]; then
+            echo "card=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+          else
+            echo "card=NO-CARD" >> $GITHUB_ENV
+          fi
+
+      - name: Obter arquivos SQL modificados
+        id: changed_sql
+        run: |
+          git fetch origin dev --depth=1
+          files=$(git diff --name-only origin/dev...HEAD -- '*.sql' || true)
+          if [ -z "$files" ]; then
+            echo "Nenhum arquivo SQL modificado."
+            echo "files=" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "files=$files" >> $GITHUB_ENV
+          echo "Arquivos modificados:"
+          echo "$files"
+
+      - name: Preparar pacote de execução
+        if: env.files != ''
+        run: |
+          mkdir -p sql_plan
+          timestamp=$(date +'%Y%m%d_%H%M%S')
+          plan_file="sql_plan/plan_${timestamp}.txt"
+
+          for f in $files; do
+            echo "$timestamp | $card | $f | autor=${{ github.actor }} | status=PENDING" >> "$plan_file"
+          done
+
+          echo "Arquivo de plano gerado: $plan_file"
+
+      - name: Upload artifact
+        if: env.files != ''
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.BOT_PAT }}
-
-      - name: Extrair infos do commit/PR
-        run: |
-          echo "DATE=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
-          echo "AUTHOR=${{ github.actor }}" >> $GITHUB_ENV
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
-      - name: Gerar log de instruções
-        run: |
-          mkdir -p logs
-          echo "${DATE} | BRANCH=${BRANCH} | AUTHOR=${AUTHOR} | FILES:" > logs/${DATE}.txt
-          git diff-tree --no-commit-id --name-only -r ${{ github.sha }} >> logs/${DATE}.txt
-
-      - name: Commitar log
-        run: |
-          git config user.name "Org Bot"
-          git config user.email "bot@org.com"
-          git add logs/
-          git commit -m "Registro pós-merge $DATE" || echo "Nada para commit"
-          git push
+          name: sql-plan
+          path: sql_plan/
