@@ -3,7 +3,7 @@ name: After Merge
 on:
   pull_request:
     types: [closed]
-    branches: [ dev ]
+    branches: [dev]
 
 jobs:
   prepare-sql:
@@ -24,20 +24,21 @@ jobs:
             echo "card=NO-CARD" >> $GITHUB_ENV
           fi
 
-      - name: Obter arquivos SQL modificados
+      - name: Obter arquivos SQL do PR
         id: changed_sql
         run: |
-          git fetch origin dev --depth=1
-          files=$(git diff --name-only origin/dev...HEAD -- '*.sql' || true)
+          # Extrai arquivos SQL do JSON do evento do PR
+          files=$(jq -r '.pull_request.files[]?.filename | select(endswith(".sql"))' "$GITHUB_EVENT_PATH" || true)
+
           if [ -z "$files" ]; then
             echo "Nenhum arquivo SQL modificado."
             echo "files=" >> $GITHUB_ENV
             exit 0
           fi
 
-          echo "files=$files" >> $GITHUB_ENV
-          echo "Arquivos modificados:"
+          echo "Arquivos SQL modificados:"
           echo "$files"
+          echo "files=$files" >> $GITHUB_ENV
 
       - name: Preparar pacote de execução
         if: env.files != ''
